@@ -11,14 +11,13 @@ redis_instance = redis.Redis()
 def get_page(url: str) -> str:
     """Fetch a page and cache the result in Redis."""
     count_key = f"count:{url}"
-    cached_page = redis_instance.get(url)
+    redis_instance.incr(count_key)
 
+    cached_page = redis_instance.get(url)
     if cached_page:
-        redis_instance.incr(count_key)
         return cached_page.decode('utf-8')
 
     response = requests.get(url)
     redis_instance.setex(url, 10, response.text)
-    redis_instance.incr(count_key)
 
     return response.text
