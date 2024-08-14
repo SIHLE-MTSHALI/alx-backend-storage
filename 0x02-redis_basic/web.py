@@ -8,6 +8,7 @@ from typing import Callable
 
 redis_instance = redis.Redis()
 
+
 def get_page(url: str) -> str:
     """Fetch a page and cache the result in Redis."""
     count_key = f"count:{url}"
