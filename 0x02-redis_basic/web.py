@@ -1,48 +1,52 @@
 #!/usr/bin/env python3
-"""Caching web pages with Redis"""
+"""
+Implements an expiring web cache and tracker
+"""
 
 import redis
 import requests
 from functools import wraps
 from typing import Callable
-from urllib.parse import quote
 
 
-def count_url_access(method: Callable) -> Callable:
-    """Decorator to track URL access count."""
-
-    @wraps(method)
-    def wrapper(url):
-        r = redis.Redis()
-        encoded_url = quote(url, safe='')
-        r.incr(f"count:{encoded_url}")
-        return method(url)
-
-    return wrapper
+def create_redis_client():
+    """Create and return a Redis client"""
+    return redis.Redis()
 
 
-def cache_page_content(method: Callable) -> Callable:
-    """Decorator to cache web page content for 10 seconds."""
-
-    @wraps(method)
-    def wrapper(url):
-        r = redis.Redis()
-        encoded_url = quote(url, safe='')
-        cached_page = r.get(encoded_url)
-        if cached_page:
-            return cached_page.decode("utf-8")
-
-        result = method(url)
-        r.setex(encoded_url, 10, result)
+def cache_and_track(func: Callable) -> Callable:
+    """
+    Decorator to cache the result of get_page with expiration
+    and track the number of calls
+    """
+    @wraps(func)
+    def wrapper(url: str) -> str:
+        redis_client = create_redis_client()
+        redis_client.incr(f"count:{url}")
+        
+        result = redis_client.get(f"cached:{url}")
+        if result:
+            return result.decode('utf-8')
+        
+        result = func(url)
+        redis_client.setex(f"cached:{url}", 10, result)
         return result
-
+    
     return wrapper
 
 
-@count_url_access
-@cache_page_content
+@cache_and_track
 def get_page(url: str) -> str:
-    """Fetches a web page and returns its content."""
+    """
+    Get the HTML content of a particular URL and return it
+    """
     response = requests.get(url)
-    response.raise_for_status()
     return response.text
+
+
+if __name__ == "__main__":
+    url = "http://slowwly.robertomurray.co.uk"
+    page_content = get_page(url)
+    print(page_content)
+    print(get_page(url))
+    print(get_page(url))
