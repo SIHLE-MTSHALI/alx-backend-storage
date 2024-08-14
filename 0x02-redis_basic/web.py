@@ -12,7 +12,7 @@ def count_url_access(method: Callable) -> Callable:
 
     @wraps(method)
     def wrapper(url):
-        """Wrapper function to increment access count and call function"""
+        """Wrapper function to increment access count"""
         r = redis.Redis()
         r.incr(f"count:{url}")
         return method(url)
@@ -25,7 +25,7 @@ def cache_page_content(method: Callable) -> Callable:
 
     @wraps(method)
     def wrapper(url):
-        """Wrapper function to check cache and store result if needed"""
+        """Wrapper function to check/store cache"""
         r = redis.Redis()
         cached_page = r.get(url)
         if cached_page:
