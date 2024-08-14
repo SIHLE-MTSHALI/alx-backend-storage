@@ -4,6 +4,7 @@ Web cache and tracker module
 """
 import redis
 import requests
+import time
 from functools import wraps
 from typing import Callable
 
@@ -40,6 +41,13 @@ def get_page(url: str) -> str:
 if __name__ == "__main__":
     url = ("http://slowwly.robertomurray.co.uk"
            "/delay/1000/url/http://www.example.com")
-    print(get_page(url))
-    print(get_page(url))
-    print(redis_client.get(f"count:{url}"))
+    page_content = get_page(url)
+    print(page_content)
+    print(f"Count: {redis_client.get(f'count:{url}').decode('utf-8')}")
+
+    # Wait for cache to expire
+    time.sleep(11)
+
+    page_content = get_page(url)
+    print(page_content)
+    print(f"Count: {redis_client.get(f'count:{url}').decode('utf-8')}")
